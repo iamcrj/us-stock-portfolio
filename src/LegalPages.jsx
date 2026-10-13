@@ -9,9 +9,9 @@ export default function LegalPages({ page }) {
     <div className="legal-shell">
       <header className="legal-header">
         <a className="legal-brand" href="#/">
-          <span className="legal-brand-mark">P</span>
+          <span className="legal-brand-mark">FL</span>
           <span>
-            PORTFOLIO<span className="legal-brand-dot">.</span>
+            FundLens<span className="legal-brand-dot">.</span>
           </span>
         </a>
         <a className="legal-back" href="#/">
@@ -62,7 +62,7 @@ export default function LegalPages({ page }) {
       </main>
 
       <footer className="legal-footer">
-        <span>PERSONAL US EQUITY JOURNAL</span>
+        <span>FundLens · PERSONAL US EQUITY JOURNAL</span>
         <span>Information only · Not investment advice</span>
       </footer>
     </div>

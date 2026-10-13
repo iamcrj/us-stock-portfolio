@@ -235,45 +235,37 @@ function TradeTable({ trades, type }) {
         </div>
       </div>
 
-      <div className="mobile-trade-divider" />
-
       <div className="mobile-trade-metrics">
         <div className="mobile-trade-metric">
-          <span className="mobile-field-label">BUY PRICE</span>
+          <span className="mobile-field-label">BUY</span>
           <strong>{formatPrice(trade.buyPrice)}</strong>
           <small>{formatDate(trade.buyDate)}</small>
         </div>
 
         <div className="mobile-trade-metric">
           <span className="mobile-field-label">
-            {isPastTrade ? "SELL PRICE" : "CURRENT PRICE"}
+            {isPastTrade ? "SELL" : "CURRENT"}
           </span>
           <strong>
             {formatPrice(isPastTrade ? trade.sellPrice : trade.cmp)}
           </strong>
           <small>
-            {isPastTrade
-              ? formatDate(trade.sellDate)
-              : "Latest available price"}
+            {isPastTrade ? formatDate(trade.sellDate) : "Latest price"}
           </small>
         </div>
-      </div>
 
-      <div className="mobile-trade-footer">
-        <span>
-          <span className="mobile-footer-icon" aria-hidden="true">
-            ◷
-          </span>
-          Holding period
-        </span>
-        <strong>{getHoldingDays(trade, isPastTrade) ?? "—"} days</strong>
+        <div className="mobile-trade-metric mobile-holding-metric">
+          <span className="mobile-field-label">HOLDING</span>
+          <strong>{getHoldingDays(trade, isPastTrade) ?? "—"}d</strong>
+          <small>period</small>
+        </div>
       </div>
 
       {trade.comments && (
-        <div className="mobile-trade-comment">
-          <span>NOTE</span>
+        <details className="mobile-trade-comment">
+          <summary>View note</summary>
           <p>{trade.comments}</p>
-        </div>
+        </details>
       )}
     </article>
   );
@@ -379,6 +371,8 @@ function PortfolioHome() {
 
   const [updatedAt, setUpdatedAt] = useState(null);
 
+  const [subscriberCount, setSubscriberCount] = useState(null);
+
   const [activeTab, setActiveTab] = useState("active");
 
   const [isLoading, setIsLoading] = useState(true);
@@ -440,6 +434,12 @@ function PortfolioHome() {
       );
 
       setPastTrades(Array.isArray(result.pastTrades) ? result.pastTrades : []);
+
+      setSubscriberCount(
+        Number.isFinite(Number(result.subscribers))
+          ? Number(result.subscribers)
+          : null,
+      );
 
       setUpdatedAt(result.updatedAt || null);
     } catch (error) {
@@ -538,6 +538,10 @@ function PortfolioHome() {
         message: result.message || "You're subscribed successfully!",
       });
 
+      if (!result.alreadySubscribed) {
+        setSubscriberCount((count) => (count === null ? count : count + 1));
+      }
+
       setEmail("");
     } catch (error) {
       console.error("Subscription error:", error);
@@ -545,8 +549,7 @@ function PortfolioHome() {
       setSubscribeStatus({
         type: "error",
 
-        message:
-          "We couldn't confirm your subscription. Please try again. If this continues, check the subscription API deployment.",
+        message: "We couldn't confirm your subscription. Please try again.",
       });
     } finally {
       setIsSubscribing(false);
@@ -626,7 +629,7 @@ function PortfolioHome() {
             value={
               isLoading && pastTrades.length === 0 ? "—" : pastTrades.length
             }
-            subtitle="Completed positions"
+            subtitle="Past positions"
           />
 
           <StatCard
@@ -713,8 +716,24 @@ function PortfolioHome() {
 
             <p>
               Join the journal's subscriber list to be included for potential
-              future updates.
+              future updates. Submission of your email address does not
+              guarantee that updates will be sent or that any particular
+              frequency of communication will be maintained. Your email address
+              will be used for this purpose only.
             </p>
+
+            {subscriberCount !== null && (
+              <div className="subscriber-count" aria-live="polite">
+                <span className="subscriber-count-icon" aria-hidden="true">
+                  ✦
+                </span>
+
+                <span>
+                  <strong>{subscriberCount.toLocaleString("en-IN")}</strong>{" "}
+                  subscribers so far
+                </span>
+              </div>
+            )}
           </div>
 
           <form className="subscribe-form" onSubmit={handleSubscribe}>
@@ -763,6 +782,20 @@ function PortfolioHome() {
           </form>
         </section>
 
+        <button
+          type="button"
+          className="floating-subscribe-button"
+          aria-label="Jump to email subscription form"
+          onClick={() => {
+            document.getElementById("subscribe")?.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+          }}
+        >
+          <span aria-hidden="true">✉</span> Subscribe
+        </button>
+
         <section className="disclaimer-section">
           <h2>Disclaimer</h2>
 
@@ -771,7 +804,7 @@ function PortfolioHome() {
       </main>
 
       <footer className="site-footer">
-        <span>© {new Date().getFullYear()} US Equity Journal</span>
+        <span>© {new Date().getFullYear()} FundLens. US Equity Journal</span>
 
         <nav className="footer-links" aria-label="Legal information">
           <a href="#/privacy-policy">Privacy Policy</a>
