@@ -1,4 +1,4 @@
-/* FundLens responsive design â€” high-contrast mobile and tablet layouts */
+/* FundLens responsive design — high-contrast mobile and tablet layouts */
 @media (max-width: 1000px) {
   main {
     width: min(100% - 44px, var(--page-width));
@@ -372,7 +372,7 @@
     font-size: 13px;
   }
   .mobile-trade-comment[open] summary::before {
-    content: "âˆ’";
+    content: "−";
   }
   .mobile-trade-comment p {
     margin: 8px 0 0;
@@ -524,5 +524,44 @@
   }
   .mobile-trade-metric strong {
     font-size: 10px;
+  }
+}
+
+@media (max-width: 700px) {
+  .trade-filter-panel {
+    margin: 0 0 15px;
+    padding: 13px 11px;
+    border-radius: 15px;
+  }
+  .trade-filter-heading {
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 11px;
+  }
+  .trade-filter-heading strong {
+    font-size: 12px;
+  }
+  .trade-filter-heading > div > span {
+    max-width: 210px;
+    font-size: 9px;
+    line-height: 1.4;
+  }
+  .filter-result-count {
+    padding: 6px 7px;
+    font-size: 9px !important;
+  }
+  .trade-filter-chips {
+    gap: 7px;
+  }
+  .trade-filter-chip {
+    min-height: 35px;
+    gap: 6px;
+    padding: 6px 8px 6px 10px;
+    font-size: 10px;
+  }
+  .trade-filter-chip-count {
+    min-width: 18px;
+    height: 18px;
+    font-size: 9px;
   }
 }

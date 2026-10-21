@@ -121,24 +121,82 @@ function TradeTable({ trades, type }) {
   const [sortBy, setSortBy] = useState(isPastTrade ? "sellDate" : "buyDate");
   const [sortOrder, setSortOrder] = useState("desc");
   const [search, setSearch] = useState("");
+  const [selectedFilters, setSelectedFilters] = useState([]);
+
+  const filterOptions = isPastTrade
+    ? [
+        {
+          id: "closedRecently",
+          label: "Closed recently",
+          matches: (trade) =>
+            /closed\s+recently|recently\s+closed/i.test(
+              String(trade.comments || ""),
+            ),
+        },
+        {
+          id: "profitable",
+          label: "Profitable trades",
+          matches: (trade) => (numericValue(trade.profitLossPercent) ?? 0) > 0,
+        },
+        {
+          id: "loss",
+          label: "Loss trades",
+          matches: (trade) => (numericValue(trade.profitLossPercent) ?? 0) < 0,
+        },
+      ]
+    : [
+        {
+          id: "newlyAdded",
+          label: "Newly added",
+          matches: (trade) =>
+            /newly\s+added|new\s+addition|recently\s+added/i.test(
+              String(trade.comments || ""),
+            ),
+        },
+        {
+          id: "winning",
+          label: "Winning trades",
+          matches: (trade) => (numericValue(trade.profitLossPercent) ?? 0) > 0,
+        },
+        {
+          id: "losing",
+          label: "Losing trades",
+          matches: (trade) => (numericValue(trade.profitLossPercent) ?? 0) < 0,
+        },
+      ];
+
+  const toggleFilter = (filterId) => {
+    setSelectedFilters((current) =>
+      current.includes(filterId)
+        ? current.filter((id) => id !== filterId)
+        : [...current, filterId],
+    );
+  };
 
   const filteredTrades = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return trades.filter((trade) => {
-      if (!query) return true;
+      const matchesSearch =
+        !query ||
+        [
+          trade.symbol,
+          trade.name,
+          trade.comments,
+          trade.buyDate,
+          trade.sellDate,
+        ]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(query));
 
-      return [
-        trade.symbol,
-        trade.name,
-        trade.comments,
-        trade.buyDate,
-        trade.sellDate,
-      ]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(query));
+      const matchesSelectedFilters = selectedFilters.every((filterId) => {
+        const filter = filterOptions.find((option) => option.id === filterId);
+        return filter ? filter.matches(trade) : true;
+      });
+
+      return matchesSearch && matchesSelectedFilters;
     });
-  }, [trades, search]);
+  }, [trades, search, selectedFilters, filterOptions]);
 
   const sortedTrades = useMemo(() => {
     return [...filteredTrades].sort((a, b) => {
@@ -272,9 +330,59 @@ function TradeTable({ trades, type }) {
 
   return (
     <div className="trade-table-container">
+      <div
+        className="trade-filter-panel"
+        aria-label={
+          isPastTrade ? "Closed trade filters" : "Active holding filters"
+        }
+      >
+        <div className="trade-filter-heading">
+          <div>
+            <strong>Filters</strong>
+            <span>Combine filters to narrow your trades</span>
+          </div>
+          {selectedFilters.length > 0 && (
+            <span className="filter-result-count" aria-live="polite">
+              {filteredTrades.length} matching{" "}
+              {filteredTrades.length === 1 ? "trade" : "trades"}
+            </span>
+          )}
+        </div>
+        <div className="trade-filter-chips">
+          {filterOptions.map((filter) => {
+            const selected = selectedFilters.includes(filter.id);
+            const count = trades.filter(filter.matches).length;
+
+            return (
+              <button
+                type="button"
+                key={filter.id}
+                className={`trade-filter-chip${selected ? " selected" : ""}`}
+                aria-pressed={selected}
+                aria-label={
+                  selected
+                    ? `Remove ${filter.label} filter`
+                    : `Apply ${filter.label} filter`
+                }
+                onClick={() => toggleFilter(filter.id)}
+              >
+                <span>{filter.label}</span>
+                <span className="trade-filter-chip-count">{count}</span>
+                {selected && (
+                  <span className="trade-filter-chip-remove" aria-hidden="true">
+                    ×
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="table-toolbar">
         <span className="table-count">
           {sortedTrades.length} {sortedTrades.length === 1 ? "trade" : "trades"}
+          {selectedFilters.length > 0 ? " shown" : ""}
         </span>
 
         <input
@@ -371,8 +479,6 @@ function PortfolioHome() {
 
   const [updatedAt, setUpdatedAt] = useState(null);
 
-  const [subscriberCount, setSubscriberCount] = useState(null);
-
   const [activeTab, setActiveTab] = useState("active");
 
   const [isLoading, setIsLoading] = useState(true);
@@ -434,12 +540,6 @@ function PortfolioHome() {
       );
 
       setPastTrades(Array.isArray(result.pastTrades) ? result.pastTrades : []);
-
-      setSubscriberCount(
-        Number.isFinite(Number(result.subscribers))
-          ? Number(result.subscribers)
-          : null,
-      );
 
       setUpdatedAt(result.updatedAt || null);
     } catch (error) {
@@ -538,10 +638,6 @@ function PortfolioHome() {
         message: result.message || "You're subscribed successfully!",
       });
 
-      if (!result.alreadySubscribed) {
-        setSubscriberCount((count) => (count === null ? count : count + 1));
-      }
-
       setEmail("");
     } catch (error) {
       console.error("Subscription error:", error);
@@ -549,7 +645,8 @@ function PortfolioHome() {
       setSubscribeStatus({
         type: "error",
 
-        message: "We couldn't confirm your subscription. Please try again.",
+        message:
+          "We couldn't confirm your subscription. Please try again. If this continues, check the subscription API deployment.",
       });
     } finally {
       setIsSubscribing(false);
@@ -629,7 +726,7 @@ function PortfolioHome() {
             value={
               isLoading && pastTrades.length === 0 ? "—" : pastTrades.length
             }
-            subtitle="Past positions"
+            subtitle="Completed positions"
           />
 
           <StatCard
@@ -716,24 +813,8 @@ function PortfolioHome() {
 
             <p>
               Join the journal's subscriber list to be included for potential
-              future updates. Submission of your email address does not
-              guarantee that updates will be sent or that any particular
-              frequency of communication will be maintained. Your email address
-              will be used for this purpose only.
+              future updates.
             </p>
-
-            {subscriberCount !== null && (
-              <div className="subscriber-count" aria-live="polite">
-                <span className="subscriber-count-icon" aria-hidden="true">
-                  ✦
-                </span>
-
-                <span>
-                  <strong>{subscriberCount.toLocaleString("en-IN")}</strong>{" "}
-                  subscribers so far
-                </span>
-              </div>
-            )}
           </div>
 
           <form className="subscribe-form" onSubmit={handleSubscribe}>
@@ -804,7 +885,7 @@ function PortfolioHome() {
       </main>
 
       <footer className="site-footer">
-        <span>© {new Date().getFullYear()} FundLens. US Equity Journal</span>
+        <span>© {new Date().getFullYear()} US Equity Journal</span>
 
         <nav className="footer-links" aria-label="Legal information">
           <a href="#/privacy-policy">Privacy Policy</a>
